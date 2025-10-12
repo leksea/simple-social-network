@@ -205,3 +205,23 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# PyCharm and Mac 
+# --- Virtual environments ---
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# --- IDE and editor metadata ---
+.idea/
+.vscode/
+*.iml
+
+# --- IDE and editor metadata ---
+.idea/
+.vscode/
+*.iml
+
