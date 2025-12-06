@@ -1,5 +1,5 @@
 """
-File: socialnetwork.py
+File: TestSocialNetworkScenario.py
 Author: Alexandra Yakovleva
 
 A simple social network application based on a graph network.
@@ -15,16 +15,50 @@ class SocialNetwork:
     def __init__(self):
         # Underlying directed graph
         self._graph = LinkedDirectedGraph()
+        # Map profile name -> Profile object
+        self._profiles = {}
+        # Separate adjacency structure to make friend lookups easy
+        self._friendships = {}  # name -> set of friend names
 
     # ------------- CRUD: CREATE -------------
 
-    def add_profile(self):
+    def add_profile(self, name, email="", phone="") -> None:
         """Create a new profile (vertex in the graph)."""
-        ...
 
-    def add_friendship(self):
+        if name in self._profiles:
+            print("A profile with that name already exists.")
+            return
+
+        profile = UserProfile(name, email, phone)
+        self._profiles[name] = profile
+        self._friendships[name] = set()
+        # Add vertex to the graph
+        self._graph.addVertex(name)
+        print(f"Profile '{name}' created.")
+
+
+    def add_friendship(self, name1, name2) -> None:
         """Create a friendship (undirected edge between two profiles)."""
-        ...
+        if name1 not in self._profiles or name2 not in self._profiles:
+            print("Both profiles must exist to create a friendship.")
+            return
+        if name1 == name2:
+            print("A profile cannot be friends with itself.")
+            return
+
+        if name2 in self._friendships[name1]:
+            print(f"{name1} and {name2} are already friends.")
+            return
+
+        # Update our adjacency sets
+        self._friendships[name1].add(name2)
+        self._friendships[name2].add(name1)
+
+        # Add edges in both directions to the directed graph
+        self._graph.addEdge(name1, name2, 1)
+        self._graph.addEdge(name2, name1, 1)
+
+        print(f"Friendship created between {name1} and {name2}.")
 
     # ------------- CRUD: READ -------------
 
