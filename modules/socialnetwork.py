@@ -4,6 +4,7 @@ Author: Alexandra Yakovleva
 
 A simple social network application based on a graph network.
 """
+from typing import Optional
 
 from graph import LinkedDirectedGraph
 from userprofile import UserProfile
@@ -22,7 +23,7 @@ class SocialNetwork:
 
     # ------------- CRUD: CREATE -------------
 
-    def add_profile(self, name, email="", phone="") -> None:
+    def add_profile(self, name: str, email:str="", phone:str="") -> None:
         """Create a new profile (vertex in the graph)."""
 
         if name in self._profiles:
@@ -36,8 +37,7 @@ class SocialNetwork:
         self._graph.addVertex(name)
         print(f"Profile '{name}' created.")
 
-
-    def add_friendship(self, name1, name2) -> None:
+    def add_friendship(self, name1:str, name2:str) -> None:
         """Create a friendship (undirected edge between two profiles)."""
         if name1 not in self._profiles or name2 not in self._profiles:
             print("Both profiles must exist to create a friendship.")
@@ -62,21 +62,41 @@ class SocialNetwork:
 
     # ------------- CRUD: READ -------------
 
-    def find_profile(self) -> None:
+    def find_profile(self, name:str) -> Optional[UserProfile]:
         """Return the Profile object or None."""
-        ...
+        return self._profiles.get(name, None)
 
-    def get_friends(self) -> list[UserProfile]:
+    def get_friends(self, name:str) -> list[UserProfile]:
         """Return a sorted list of friend names."""
-        ...
+        if name not in self._friendships:
+            return []
+        return sorted(self._friendships[name])
 
-    def show_profile(self) -> None:
+    def show_profile(self, name:str) -> None:
         """Print a profile and its friends."""
-        ...
+        profile = self.find_profile(name)
+        if profile is None:
+            print("Profile not found.")
+            return
+        print("----- Profile -----")
+        print(profile)
+        print("----- Friends -----")
+        friends = self.get_friends(name)
+        if friends:
+            for friend in friends:
+                print(friend)
+        else:
+            print("(no friends yet)")
 
     def show_all_profiles(self) -> None:
         """Print all profiles in the network."""
-        ...
+        if not self._profiles:
+            print("No profiles in the network.")
+            return
+        print("All profiles:")
+        for name in sorted(self._profiles.keys()):
+            print(" -", name)
+
     # ------------- CRUD: UPDATE -------------
     def update_profile(self) -> None:
         """Update profile data and rename vertex if needed."""
