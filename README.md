@@ -132,86 +132,24 @@ Or run:
 
 This project follows a modular, object-oriented design centered around graph-based connectivity. The goal is to model a lightweight social network with support for duplicate names, fast profile lookup, and efficient friendship operations.
 
-Core Architecture
+### Core Architecture
 
-UserProfile Class
-Represents a single user in the network.
-	•	Stores name, email, phone, and auto-assigned user_id
-	•	Implements __eq__ and __hash__ for duplicate detection
-	•	Can be updated in place (name/email/phone)
-	•	Hashing is based on immutable identity fields: (name, email, phone)
-
-SocialNetwork Class
-Coordinates all user and friendship operations. It maintains:
-	•	_graph
-A LinkedDirectedGraph from Lambert’s textbook.
-Stores user IDs as vertices and friendships as weighted edges.
-	•	_profiles
-Dictionary mapping user_id → UserProfile.
-Allows users with the same name.
-	•	_name_index
-Maps each name to a set of user IDs that share it.
-Enables fast lookup for duplicate names (e.g., multiple “Alex” profiles).
-	•	_friendships
-Adjacency list mapping user_id → set[user_id].
-Ensures O(1) friend lookups and provides data for friend suggestions.
-	•	_profile_set
-A hash set of UserProfile objects used to detect exact duplicates
-(same name + email + phone).
-Ensures identity correctness and prevents profile collisions.
-	•	_next_id
-Monotonically increasing integer used to assign new user IDs.
+UserProfile Class Represents a single user in the network.
+SocialNetwork Class Coordinates all user and friendship operations.
 
 This layered design separates concerns:
-	•	the graph manages edges,
-	•	the dictionaries manage lookup and identity,
-	•	the profile set handles uniqueness, and
-	•	the adjacency list handles fast friendships.
+-- the graph manages edges,
 
-⸻
+-- the dictionaries manage lookup and identity,
+
+-- the profile set handles uniqueness, and
+
+-- the adjacency list handles fast friendships.
+
 
 ### Algorithms and Data Flow
 
-Adding a Profile
-	1.	Construct a UserProfile instance with name/email/phone.
-	2.	Check _profile_set to prevent duplicates.
-	3.	Assign a new user_id from _next_id.
-	4.	Add vertices to:
-	•	_profiles
-	•	_name_index
-	•	_friendships
-	•	_graph
-	•	_profile_set
 
-All structures remain synchronized.
-
-Adding a Friendship
-	1.	Confirm both profiles exist.
-	2.	Prevent self-friendship.
-	3.	Add IDs to each other’s adjacency sets.
-	4.	Add edges in the graph in both directions (undirected simulation).
-
-Graph and adjacency list remain consistent.
-
-Updating a Profile
-When name/email/phone changes:
-	1.	Temporarily remove profile from _profile_set
-(because hashing depends on these fields).
-	2.	Update name index if changed.
-	3.	Reinsert updated profile into _profile_set.
-
-This guarantees correct hashing and equality behavior.
-
-Removing a Profile
-	1.	Remove the profile from _profile_set.
-	2.	Remove the user from all other users’ friend lists.
-	3.	Remove the user’s entries from:
-	•	_profiles
-	•	_name_index
-	•	_friendships
-	4.	Remove the vertex from the graph.
-
-All references to the deleted user are fully cleaned.
 ---
 ## Examples
 Here is a basic example of creating profiles, adding friendships, and generating friend suggestions:
@@ -235,6 +173,8 @@ suggestions = net.suggest_friends(alex1)
 for s in suggestions:
     print(s)
 ```
+For more, check code in `examples/` directory.
+
 ---
 ## Testing
 
