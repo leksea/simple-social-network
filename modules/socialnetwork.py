@@ -4,7 +4,7 @@ Author: Alexandra Yakovleva
 
 A simple social network application based on a graph network.
 """
-from typing import Optional
+from typing import Optional, List, Tuple, Set, Dict
 
 from graph import LinkedDirectedGraph
 from userprofile import UserProfile
@@ -97,10 +97,87 @@ class SocialNetwork:
         for name in sorted(self._profiles.keys()):
             print(" -", name)
 
+    def suggest_friends(self, name: str) -> List[UserProfile]:
+        """Return a sorted list of potential friend profiles (friends-of-friends)."""
+        # If the user doesn't exist, no suggestions
+        if name not in self._profiles:
+            return []
+
+        # Direct friends of this user
+        direct_friends: Set[str] = self._friendships.get(name, set())
+
+        # Count mutual friends for each candidate
+        candidate_scores: Dict[str, int] = {}
+
+        for friend in direct_friends:
+            friends_of_friend: Set[str] = self._friendships.get(friend, set())
+            for fof in friends_of_friend:
+                # Skip self and already-friends
+                if fof == name or fof in direct_friends:
+                    continue
+                # Increase mutual-friend count
+                candidate_scores[fof] = candidate_scores.get(fof, 0) + 1
+
+        # Sort candidates:
+        #   - first by mutual friend count (descending)
+        #   - then by name (ascending)
+        sorted_candidates: List[Tuple[str, int]] = sorted(
+            candidate_scores.items(),
+            key=lambda item: (-item[1], item[0])
+        )
+
+        # Convert names to UserProfile objects
+        suggestions: List[UserProfile] = [
+            self._profiles[candidate_name]
+            for candidate_name, _ in sorted_candidates
+            if candidate_name in self._profiles
+        ]
+
+        return suggestions
     # ------------- CRUD: UPDATE -------------
-    def update_profile(self) -> None:
+    def update_profile(self, current_name:str, new_name=None, new_email=None, new_phone=None):
         """Update profile data and rename vertex if needed."""
-        ...
+        profile = self.find_profile(current_name)
+        if profile is None:
+            print("Profile not found.")
+            return
+
+        # If we change the name, we must also update dictionaries and the graph.
+        if new_name and new_name != current_name:
+            if new_name in self._profiles:
+                print("Another profile with that new name already exists.")
+                return
+
+            # 1) Update profile object
+            profile.update(name=new_name)
+
+            # 2) Move in _profiles dict
+            self._profiles[new_name] = profile
+            del self._profiles[current_name]
+
+            # 3) Move friendships
+            self._friendships[new_name] = self._friendships[current_name]
+            del self._friendships[current_name]
+            # Update every friend's set
+            for friend in self._friendships[new_name]:
+                if current_name in self._friendships[friend]:
+                    self._friendships[friend].remove(current_name)
+                    self._friendships[friend].add(new_name)
+
+            # 4) Rebuild graph vertex name (simplest approach: remove + re-add)
+            # Remove old vertex (and all its incident edges).
+            self._graph.removeVertex(current_name)
+            # Add new vertex
+            self._graph.addVertex(new_name)
+            # Re-add edges from friendships
+            for friend in self._friendships[new_name]:
+                self._graph.addEdge(new_name, friend, 1)
+                self._graph.addEdge(friend, new_name, 1)
+
+        # Update email/phone
+        profile.update(email=new_email, phone=new_phone)
+        print("Profile updated.")
+
     # ------------- CRUD: DELETE -------------
 
     def remove_profile(self) -> None:
