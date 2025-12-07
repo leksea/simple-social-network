@@ -87,7 +87,8 @@ classDiagram
         - name: str
         - email: str
         - phone: str
-        + __init__(name: str, email: str = "", phone: str = ""): None
+        - id : int
+        + __init__(name: str, email: str = "", phone: str = "", user_id: int | None = None)
         + update(name: str | None = None, email: str | None = None, phone: str | None = None): None
         + __eq__(other: UserProfile): bool
         + __hash__(): int
@@ -97,25 +98,25 @@ classDiagram
 
     class SocialNetwork {
         - _graph: LinkedDirectedGraph
-        - _profiles: dict[str, UserProfile]
+        - _profiles: dict[int, UserProfile]
+        - _name_index: dict[str, set[int]]
         - _profile_set: set[UserProfile]
-        - _friendships: dict[str, set[str]]
+        - _friendships: dict[int, set[int]]
+        - _next_id: int
         + __init__(): None
         + profile_exists(target: UserProfile): bool
         + find_profile_by_data(target: UserProfile): UserProfile | None
-        + add_profile(name: str, email: str = "", phone: str = ""): None
+        + add_profile(name: str, email: str = "", phone: str = ""): UserProfile | None
         + add_friendship(profile1: UserProfile, profile2: UserProfile): None
-        + add_friendship_by_name(name1: str, name2: str): None
-        + find_profile(name: str): UserProfile | None
-        + get_friends(name: str): list[UserProfile]
-        + suggest_friends(name: str): list[UserProfile]
+        + find_profile(name: str): list[UserProfile]
+        + get_friends(profile: UserProfile): list[UserProfile]
         + show_profile(name: str): None
         + show_all_profiles(): None
-        + update_profile(current_name: str, new_name: str | None = None, new_email: str | None = None, new_phone: str | None = None): None
-        + remove_profile(name: str): None
+        + suggest_friends(profile: UserProfile): list[UserProfile]
+        + update_profile(user_id: int, new_name: str | None = None, new_email: str | None = None, new_phone: str | None = None): None
+        + remove_profile(user_id: int): None
         + remove_friendship(profile1: UserProfile, profile2: UserProfile): None
-        + remove_friendship_by_name(name1: str, name2: str): None
-    }
+        }
 
     SocialNetwork "1" o-- "1" LinkedDirectedGraph
     SocialNetwork "1" o-- "*" UserProfile
