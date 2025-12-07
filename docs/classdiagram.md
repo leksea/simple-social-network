@@ -1,3 +1,4 @@
+```mermaid
 classDiagram
     class UserProfile {
         - name: str
@@ -55,3 +56,4 @@ classDiagram
     SocialNetwork "1" o-- "*" Profile
     LinkedDirectedGraph "1" o-- "*" Vertex
     Vertex "1" o-- "*" Edge
+```
