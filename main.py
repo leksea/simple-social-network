@@ -5,19 +5,19 @@ Author: Alexandra Yakovleva
 from modules.socialnetwork import SocialNetwork
 
 def main() -> None:
-    """Simple text-based driver to exercise the SocialNetwork class."""
-    network = SocialNetwork()
+    """Simple text menu to exercise the SocialNetwork class (ID-based)."""
+    net = SocialNetwork()
 
     MENU = """
 --- Simple Social Network ---
 1. Add profile
-2. Show profile
+2. Show profiles by name
 3. Show all profiles
-4. Update profile
-5. Remove profile
-6. Add friendship
-7. Remove friendship
-8. Suggest friends
+4. Update profile (by ID)
+5. Remove profile (by ID)
+6. Add friendship (by IDs)
+7. Remove friendship (by IDs)
+8. Suggest friends (by ID)
 0. Quit
 """
 
@@ -30,76 +30,116 @@ def main() -> None:
             break
 
         elif choice == "1":
-            # CREATE: profile
+            # CREATE profile
             name = input("Name: ").strip()
             email = input("Email (optional): ").strip()
             phone = input("Phone (optional): ").strip()
-            network.add_profile(name, email, phone)
+            profile = net.add_profile(name, email, phone)
+            if profile is not None:
+                print(f"Created profile with id={profile.user_id}.")
+            print()
 
         elif choice == "2":
-            # READ: single profile
-            name = input("Profile name to show: ").strip()
-            network.show_profile(name)
+            # READ profiles by name
+            name = input("Enter name to search: ").strip()
+            net.show_profile(name)
+            print()
 
         elif choice == "3":
-            # READ: all profiles
-            network.show_all_profiles()
+            # READ all profiles
+            net.show_all_profiles()
+            print()
 
         elif choice == "4":
-            # UPDATE: profile data
-            current_name = input("Current name: ").strip()
+            # UPDATE profile by ID
+            try:
+                user_id = int(input("Enter profile ID to update: ").strip())
+            except ValueError:
+                print("Invalid ID.")
+                continue
+
             new_name = input("New name (leave blank to keep): ").strip()
             new_email = input("New email (leave blank to keep): ").strip()
             new_phone = input("New phone (leave blank to keep): ").strip()
 
-            network.update_profile(
-                current_name=current_name,
+            net.update_profile(
+                user_id=user_id,
                 new_name=new_name or None,
                 new_email=new_email or None,
                 new_phone=new_phone or None,
             )
+            print()
 
         elif choice == "5":
-            # DELETE: profile
-            name = input("Name of profile to remove: ").strip()
-            network.remove_profile(name)
+            # DELETE profile by ID
+            try:
+                user_id = int(input("Enter profile ID to remove: ").strip())
+            except ValueError:
+                print("Invalid ID.")
+                continue
+
+            net.remove_profile(user_id)
+            print()
 
         elif choice == "6":
-            # CREATE: friendship (via profiles)
-            name1 = input("First profile name: ").strip()
-            name2 = input("Second profile name: ").strip()
-            p1 = network.find_profile(name1)
-            p2 = network.find_profile(name2)
+            # CREATE friendship (by IDs)
+            try:
+                id1 = int(input("First profile ID: ").strip())
+                id2 = int(input("Second profile ID: ").strip())
+            except ValueError:
+                print("Invalid ID(s).")
+                continue
+
+            p1 = net.profiles.get(id1)
+            p2 = net.profiles.get(id2)
             if p1 is None or p2 is None:
-                print("Both profiles must exist.")
+                print("Both IDs must exist.")
             else:
-                network.add_friendship(p1, p2)
+                net.add_friendship(p1, p2)
+            print()
 
         elif choice == "7":
-            # DELETE: friendship (via profiles)
-            name1 = input("First profile name: ").strip()
-            name2 = input("Second profile name: ").strip()
-            p1 = network.find_profile(name1)
-            p2 = network.find_profile(name2)
+            # DELETE friendship (by IDs)
+            try:
+                id1 = int(input("First profile ID: ").strip())
+                id2 = int(input("Second profile ID: ").strip())
+            except ValueError:
+                print("Invalid ID(s).")
+                continue
+
+            p1 = net.profiles.get(id1)
+            p2 = net.profiles.get(id2)
             if p1 is None or p2 is None:
-                print("Both profiles must exist.")
+                print("Both IDs must exist.")
             else:
-                network.remove_friendship(p1, p2)
+                net.remove_friendship(p1, p2)
+            print()
 
         elif choice == "8":
-            # READ: suggestions
-            name = input("Profile name to suggest friends for: ").strip()
-            suggestions = network.suggest_friends(name)
+            # SUGGEST friends (by ID)
+            try:
+                user_id = int(input("Profile ID to suggest friends for: ").strip())
+            except ValueError:
+                print("Invalid ID.")
+                continue
+
+            profile = net.profiles.get(user_id)
+            if profile is None:
+                print("Profile not found.")
+                print()
+                continue
+
+            suggestions = net.suggest_friends(profile)
             if not suggestions:
                 print("No friend suggestions.")
             else:
                 print("Suggested friends:")
-                for prof in suggestions:
-                    print(f" - {prof.name} ({prof.email}, {prof.phone})")
+                for p in suggestions:
+                    print(f" - id={p.user_id}, name={p.name}, email={p.email}, phone={p.phone}")
+            print()
 
         else:
-            print("Invalid choice, please try again.")
-
+            print("Invalid choice, please try again.\n")
 
 if __name__ == "__main__":
     main()
