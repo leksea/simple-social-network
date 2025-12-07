@@ -21,10 +21,25 @@ class SocialNetwork:
         # Separate adjacency structure to make friend lookups easy
         self._friendships = {}  # name -> set of friend names
 
+    # ------------- DECORATORS -------------
+
+    @property
+    def graph(self) -> LinkedDirectedGraph:
+        return self._graph
+    @property
+    def profiles(self) -> Dict[str, UserProfile]:
+        return self._profiles
+    @property
+    def friendships(self) -> Dict[str, Set[UserProfile]]:
+        return self._friendships
+
     # ------------- CRUD: CREATE -------------
 
     def add_profile(self, name: str, email:str="", phone:str="") -> None:
-        """Create a new profile (vertex in the graph)."""
+        """
+        Create a new profile (vertex in the graph).
+        Precondition: unique profile name
+        """
 
         if name in self._profiles:
             print("A profile with that name already exists.")
@@ -38,7 +53,10 @@ class SocialNetwork:
         print(f"Profile '{name}' created.")
 
     def add_friendship(self, name1:str, name2:str) -> None:
-        """Create a friendship (undirected edge between two profiles)."""
+        """
+        Create a friendship (undirected edge between two profiles).
+        Precondition: name1 != name2 and both profiles exist
+        """
         if name1 not in self._profiles or name2 not in self._profiles:
             print("Both profiles must exist to create a friendship.")
             return
@@ -73,7 +91,10 @@ class SocialNetwork:
         return sorted(self._friendships[name])
 
     def show_profile(self, name:str) -> None:
-        """Print a profile and its friends."""
+        """
+        Print a profile and its friends.
+        Preconditin: profile name exists
+        """
         profile = self.find_profile(name)
         if profile is None:
             print("Profile not found.")
@@ -89,7 +110,10 @@ class SocialNetwork:
             print("(no friends yet)")
 
     def show_all_profiles(self) -> None:
-        """Print all profiles in the network."""
+        """
+        Print all profiles in the network.
+        Precondition: self._profiles not empty
+        """
         if not self._profiles:
             print("No profiles in the network.")
             return
@@ -98,7 +122,10 @@ class SocialNetwork:
             print(" -", name)
 
     def suggest_friends(self, name: str) -> List[UserProfile]:
-        """Return a sorted list of potential friend profiles (friends-of-friends)."""
+        """
+        Return a sorted list of potential friend profiles (friends-of-friends).
+        Precondition: name exists in self._profiles
+        """
         # If the user doesn't exist, no suggestions
         if name not in self._profiles:
             return []
@@ -132,11 +159,15 @@ class SocialNetwork:
             for candidate_name, _ in sorted_candidates
             if candidate_name in self._profiles
         ]
-
         return suggestions
+
     # ------------- CRUD: UPDATE -------------
-    def update_profile(self, current_name:str, new_name=None, new_email=None, new_phone=None):
-        """Update profile data and rename vertex if needed."""
+    def update_profile(self, current_name:str, new_name:str=None, new_email:str=None, new_phone:str=None):
+        """
+        Update profile data and rename vertex if needed.
+        Precondition: current_name exists in self._profiles
+        Precondition: new_name does not exist in self._profiles
+        """
         profile = self.find_profile(current_name)
         if profile is None:
             print("Profile not found.")
@@ -148,14 +179,14 @@ class SocialNetwork:
                 print("Another profile with that new name already exists.")
                 return
 
-            # 1) Update profile object
+            # Update profile object
             profile.update(name=new_name)
 
-            # 2) Move in _profiles dict
+            # Move in _profiles dict
             self._profiles[new_name] = profile
             del self._profiles[current_name]
 
-            # 3) Move friendships
+            # Move friendships
             self._friendships[new_name] = self._friendships[current_name]
             del self._friendships[current_name]
             # Update every friend's set
@@ -164,7 +195,7 @@ class SocialNetwork:
                     self._friendships[friend].remove(current_name)
                     self._friendships[friend].add(new_name)
 
-            # 4) Rebuild graph vertex name (simplest approach: remove + re-add)
+            # Rebuild graph vertex name: remove + re-add
             # Remove old vertex (and all its incident edges).
             self._graph.removeVertex(current_name)
             # Add new vertex
@@ -180,84 +211,48 @@ class SocialNetwork:
 
     # ------------- CRUD: DELETE -------------
 
-    def remove_profile(self) -> None:
-        """Delete a profile (vertex) and all its friendships."""
-        ...
+    def remove_profile(self, name:str) -> None:
+        """
+        Delete a profile (vertex) and all its friendships.
+        Precondition: name exists in self._profiles
+        """
+        if name not in self._profiles:
+            print("Profile not found.")
+            return
 
-    def remove_friendship(self) ->None :
-        """Delete the friendship between two profiles."""
-        ...
+        # Remove this profile from friends' sets
+        for friend in list(self._friendships[name]):
+            self._friendships[friend].discard(name)
 
-# ------------- UI testing -------------
+        # Remove from our structures
+        del self._profiles[name]
+        del self._friendships[name]
 
-def main():
-    network = SocialNetwork()
+        # Remove from graph (removes all incident edges)
+        self._graph.removeVertex(name)
 
-    MENU = """
---- Simple Social Network Menu ---
-1. Add profile (Create)
-2. Show profile (Read)
-3. Show all profiles (Read)
-4. Update profile (Update)
-5. Remove profile (Delete)
-6. Add friendship (Create)
-7. Remove friendship (Delete)
-8. Show raw graph (debug)
-0. Quit
-"""
+        print(f"Profile '{name}' and all its friendships removed.")
 
-    while True:
-        print(MENU)
-        choice = input("Enter your choice: ").strip()
+    def remove_friendship(self, name1:str, name2:str) ->None :
+        """
+        Delete the friendship between two profiles.
+        Precondition: name1 exists in self._friendships
+        Precondition: name2 exists in self._friendships
+        """
 
-        if choice == "0":
-            print("Goodbye.")
-            break
+        if name1 not in self._profiles or name2 not in self._profiles:
+            print("Both profiles must exist.")
+            return
 
-        elif choice == "1":
-            print("Adding profile.")
-            #network.add_profile()
+        if name2 not in self._friendships[name1]:
+            print("These two profiles are not friends.")
+            return
 
-        elif choice == "2":
-            print("Displaying profile.")
-            #name = input("Profile name to show: ").strip().lower()
-            #network.show_profile(name)
+        self._friendships[name1].remove(name2)
+        self._friendships[name2].remove(name1)
 
-        elif choice == "3":
-            print("All profiles.")
-            #network.show_all_profiles()
+        # Remove edges from graph
+        self._graph.removeEdge(name1, name2)
+        self._graph.removeEdge(name2, name1)
 
-        elif choice == "4":
-            print("Updating profile.")
-            #current_name = input("Current name: ").strip().lower()
-            #network.update_profile()
-
-        elif choice == "5":
-            print("Removing profile.")
-            #name = input("Name of profile to remove: ").strip().lower()
-            #network.remove_profile()
-
-        elif choice == "6":
-            print("Adding friendship.")
-            #name1 = input("First profile: ").strip().lower()
-            #name2 = input("Second profile: ").strip().lower()
-            #network.add_friendship(name1, name2)
-
-        elif choice == "7":
-            print("Removing friendship.")
-            #name1 = input("First profile: ").strip().lower()
-            #name2 = input("Second profile: ").strip().lower()
-            #network.remove_friendship(name1, name2)
-
-        elif choice == "8":
-            print("Show raw graph.")
-            # Relies on LinkedDirectedGraph.__str__ implementation
-            #print("Raw graph representation:\n")
-            #print(network._graph)
-
-        else:
-            print("Invalid choice. Please try again.")
-
-
-if __name__ == "__main__":
-    main()
+        print(f"Friendship between {name1} and {name2} removed.")
