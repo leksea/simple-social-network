@@ -1,5 +1,5 @@
 """
-file: test_socialnetwork.py
+file: testsocialnetwork.py
 author: Alexandra Yakovleva
 Unit test for SocialNetwork
 """
@@ -8,143 +8,180 @@ from modules.socialnetwork import SocialNetwork
 from modules.userprofile import UserProfile
 
 class TestSocialNetworkScenario(unittest.TestCase):
-    def test_profile_equality_and_hash(self) -> None:
+    def test_userprofile_equality_and_hash(self) -> None:
         """Profiles are equal and hash-equal if name/email/phone match."""
-        p1 = UserProfile("Anna", "anna@example.com", "111-1111")
-        p2 = UserProfile("Anna", "anna@example.com", "111-1111")
-        p3 = UserProfile("Anna", "another@example.com", "111-1111")
+        p1 = UserProfile("Alex", "alex@wvc.edu", "408-555-0001")
+        p2 = UserProfile("Alex", "alex@wvc.edu", "408-555-0001")
+        p3 = UserProfile("Alex", "alex2@wvc.edu", "408-555-0001")
 
         self.assertEqual(p1, p2)
         self.assertNotEqual(p1, p3)
         self.assertEqual(hash(p1), hash(p2))
 
-        # Hash-based membership should work
         s = {p1}
         self.assertIn(p2, s)
         self.assertNotIn(p3, s)
 
-    def test_add_profile_and_find(self) -> None:
-        """add_profile registers a profile and find_profile retrieves it."""
+    def test_add_profile_and_reject_exact_duplicate(self) -> None:
+        """Exact duplicate (same name+email+phone) is rejected."""
         net = SocialNetwork()
 
-        net.add_profile("Anna", "anna@example.com", "111-1111")
-        anna = net.find_profile("Anna")
+        p1 = net.add_profile("Alex", "alex@wvc.edu", "408-555-0001")
+        p2 = net.add_profile("Alex", "alex@wvc.edu", "408-555-0001")  # duplicate
 
-        self.assertIsNotNone(anna)
-        self.assertEqual(
-            anna,
-            UserProfile("Anna", "anna@example.com", "111-1111")
-        )
+        self.assertIsInstance(p1, UserProfile)
+        self.assertIsNone(p2)
 
-        # Stored in dict and set
+        # Only one profile stored
         self.assertEqual(len(net.profiles), 1)
         self.assertEqual(len(net.profile_set), 1)
 
-    def test_prevent_duplicate_profiles_by_data(self) -> None:
-        """Adding the same profile data twice does not create duplicates."""
+    def test_duplicate_names_allowed(self) -> None:
+        """Two different profiles with the same name but different data are allowed."""
         net = SocialNetwork()
 
-        net.add_profile("Anna", "anna@example.com", "111-1111")
-        net.add_profile("Anna", "anna@example.com", "111-1111")  # duplicate
+        p1 = net.add_profile("Alex", "alex_cs@wvc.edu", "408-555-0101")
+        p2 = net.add_profile("Alex", "alex_math@wvc.edu", "650-555-0202")
 
-        self.assertEqual(len(net.profiles), 1)
-        self.assertEqual(len(net.profile_set), 1)
+        self.assertIsInstance(p1, UserProfile)
+        self.assertIsInstance(p2, UserProfile)
+        self.assertNotEqual(p1.email, p2.email)
+        self.assertNotEqual(p1.user_id, p2.user_id)
+
+        # Two profiles total, both named Alex
+        self.assertEqual(len(net.profiles), 2)
+
+        alex_profiles = net.find_profile("Alex")
+        self.assertEqual(len(alex_profiles), 2)
+        self.assertEqual({p.email for p in alex_profiles},
+                         {"alex_cs@wvc.edu", "alex_math@wvc.edu"})
 
     def test_add_friendship_and_get_friends(self) -> None:
-        """Friendships are created between profiles and visible via get_friends."""
+        """Friendships are mutual and returned correctly via get_friends()."""
         net = SocialNetwork()
-        net.add_profile("Anna", "anna@example.com", "111-1111")
-        net.add_profile("Boris", "boris@example.com", "222-2222")
-        net.add_profile("Christina", "christina@example.com", "333-3333")
 
-        anna = net.find_profile("Anna")
-        boris = net.find_profile("Boris")
-        christina = net.find_profile("Christina")
-        self.assertIsNotNone(anna)
-        self.assertIsNotNone(boris)
-        self.assertIsNotNone(christina)
+        alex = net.add_profile("Alex", "alex@wvc.edu", "408-555-0001")
+        bella = net.add_profile("Bella", "bella@wvc.edu", "650-555-0002")
+        carlos = net.add_profile("Carlos", "carlos@wvc.edu", "415-555-0003")
 
-        net.add_friendship(anna, boris)
-        net.add_friendship(anna, christina)
+        assert isinstance(alex, UserProfile)
+        assert isinstance(bella, UserProfile)
+        assert isinstance(carlos, UserProfile)
 
-        anna_friends = net.get_friends("Anna")
-        boris_friends = net.get_friends("Boris")
-        christina_friends = net.get_friends("Christina")
+        net.add_friendship(alex, bella)
+        net.add_friendship(alex, carlos)
 
-        self.assertEqual({f.name for f in anna_friends}, {"Boris", "Christina"})
-        self.assertEqual({f.name for f in boris_friends}, {"Anna"})
-        self.assertEqual({f.name for f in christina_friends}, {"Anna"})
+        alex_friends = net.get_friends(alex)
+        bella_friends = net.get_friends(bella)
+        carlos_friends = net.get_friends(carlos)
+
+        self.assertEqual({p.name for p in alex_friends}, {"Bella", "Carlos"})
+        self.assertEqual({p.name for p in bella_friends}, {"Alex"})
+        self.assertEqual({p.name for p in carlos_friends}, {"Alex"})
 
     def test_suggest_friends_friends_of_friends(self) -> None:
-        """suggest_friends returns FoF ranked by mutual friend count."""
+        """suggest_friends uses friends-of-friends and counts mutual friends."""
         net = SocialNetwork()
-        net.add_profile("Anna", "anna@example.com", "111-1111")
-        net.add_profile("Boris", "boris@example.com", "222-2222")
-        net.add_profile("Christina", "christina@example.com", "333-3333")
-        net.add_profile("David", "david@example.com", "444-4444")
 
-        anna = net.find_profile("Anna")
-        boris = net.find_profile("Boris")
-        christina = net.find_profile("Christina")
-        david = net.find_profile("David")
+        alex = net.add_profile("Alex", "alex@wvc.edu", "408-555-0001")
+        bella = net.add_profile("Bella", "bella@wvc.edu", "650-555-0002")
+        carlos = net.add_profile("Carlos", "carlos@wvc.edu", "415-555-0003")
+        diana = net.add_profile("Diana", "diana@wvc.edu", "408-555-0004")
 
-        net.add_friendship(anna, boris)
-        net.add_friendship(boris, christina)
-        net.add_friendship(boris, david)
+        assert isinstance(alex, UserProfile)
+        assert isinstance(bella, UserProfile)
+        assert isinstance(carlos, UserProfile)
+        assert isinstance(diana, UserProfile)
 
-        suggestions_for_anna = net.suggest_friends("Anna")
-        suggestion_names = {p.name for p in suggestions_for_anna}
+        # Alex is friends with Bella and Carlos
+        net.add_friendship(alex, bella)
+        net.add_friendship(alex, carlos)
 
-        # Anna is directly connected only to Boris, so FoF via Boris = {Christina, David}
-        self.assertEqual(suggestion_names, {"Christina", "David"})
+        # Bella and Carlos are both friends with Diana
+        net.add_friendship(bella, diana)
+        net.add_friendship(carlos, diana)
 
-    def test_update_profile_renames_and_updates_hash_set(self) -> None:
-        """update_profile renames user and keeps hash-based sets consistent."""
+        # FoF for Alex: Diana (via Bella and Carlos) with count 2
+        suggestions = net.suggest_friends(alex)
+        self.assertEqual(len(suggestions), 1)
+        self.assertEqual(suggestions[0].name, "Diana")
+
+    def test_update_profile_changes_name_and_index_and_hashset(self) -> None:
+        """update_profile updates name, name index, and keeps _profile_set consistent."""
         net = SocialNetwork()
-        net.add_profile("Anna", "anna@example.com", "111-1111")
-        net.add_profile("Boris", "boris@example.com", "222-2222")
 
-        anna = net.find_profile("Anna")
-        boris = net.find_profile("Boris")
-        net.add_friendship(anna, boris)
+        alex = net.add_profile("Alex", "alex@wvc.edu", "408-555-0001")
+        assert isinstance(alex, UserProfile)
+        user_id = alex.user_id
+        assert user_id is not None
 
-        net.update_profile("Anna", new_name="Ann", new_email="ann@example.com")
+        # Initially, Alex is under name "Alex"
+        self.assertEqual({p.user_id for p in net.find_profile("Alex")}, {user_id})
+        self.assertEqual(net.find_profile("Alexa"), [])
 
-        self.assertIsNone(net.find_profile("Anna"))
-        ann = net.find_profile("Ann")
-        self.assertIsNotNone(ann)
-        self.assertEqual(ann.name, "Ann")
-        self.assertEqual(ann.email, "ann@example.com")
+        # Update name and email
+        net.update_profile(user_id, new_name="Alexa", new_email="alexa@wvc.edu")
 
-        # Friendship should now be between Ann and Boris
-        ann_friends = net.get_friends("Ann")
-        self.assertEqual({f.name for f in ann_friends}, {"Boris"})
+        # Old name should no longer return this profile
+        self.assertEqual(net.find_profile("Alex"), [])
 
-        # Only two profiles total, one renamed
-        self.assertEqual(len(net.profiles), 2)
-        self.assertEqual(len(net.profile_set), 2)
+        # New name should return this profile
+        alexa_profiles = net.find_profile("Alexa")
+        self.assertEqual(len(alexa_profiles), 1)
+        alexa = alexa_profiles[0]
+        self.assertEqual(alexa.name, "Alexa")
+        self.assertEqual(alexa.email, "alexa@wvc.edu")
+        self.assertEqual(alexa.user_id, user_id)
 
-    def test_remove_friendship_and_profile(self) -> None:
-        """Removing friendships and profiles updates all structures."""
-        net = SocialNetwork()
-        net.add_profile("Anna", "anna@example.com", "111-1111")
-        net.add_profile("Boris", "boris@example.com", "222-2222")
-
-        anna = net.find_profile("Anna")
-        boris = net.find_profile("Boris")
-        net.add_friendship(anna, boris)
-
-        # Remove friendship
-        net.remove_friendship(anna, boris)
-        self.assertEqual(net.get_friends("Anna"), [])
-        self.assertEqual(net.get_friends("Boris"), [])
-
-        # Remove profile
-        net.remove_profile("Boris")
-        self.assertIsNone(net.find_profile("Boris"))
-        self.assertEqual(net.get_friends("Anna"), [])
-        self.assertEqual(len(net.profiles), 1)
+        # _profile_set should still contain exactly one profile equal to alexa
+        self.assertIn(alexa, net.profile_set)
         self.assertEqual(len(net.profile_set), 1)
+
+    def test_remove_profile_cleans_friendships_and_indexes(self) -> None:
+        """remove_profile deletes the profile and all references from friendship and name index."""
+        net = SocialNetwork()
+
+        alex = net.add_profile("Alex", "alex@wvc.edu", "408-555-0001")
+        bella = net.add_profile("Bella", "bella@wvc.edu", "650-555-0002")
+
+        assert isinstance(alex, UserProfile)
+        assert isinstance(bella, UserProfile)
+
+        net.add_friendship(alex, bella)
+
+        # Sanity check
+        self.assertEqual({p.name for p in net.get_friends(alex)}, {"Bella"})
+        self.assertEqual({p.name for p in net.get_friends(bella)}, {"Alex"})
+
+        # Remove Bella
+        net.remove_profile(bella.user_id)
+
+        # Bella is gone
+        self.assertEqual(len(net.find_profile("Bella")), 0)
+        self.assertNotIn(bella, net.profile_set)
+
+        # Alex now has no friends
+        self.assertEqual(net.get_friends(alex), [])
+
+    def test_remove_friendship(self) -> None:
+        """remove_friendship removes the edge and updates adjacency."""
+        net = SocialNetwork()
+
+        alex = net.add_profile("Alex", "alex@wvc.edu", "408-555-0001")
+        bella = net.add_profile("Bella", "bella@wvc.edu", "650-555-0002")
+
+        assert isinstance(alex, UserProfile)
+        assert isinstance(bella, UserProfile)
+
+        net.add_friendship(alex, bella)
+
+        self.assertEqual({p.name for p in net.get_friends(alex)}, {"Bella"})
+        self.assertEqual({p.name for p in net.get_friends(bella)}, {"Alex"})
+
+        net.remove_friendship(alex, bella)
+
+        self.assertEqual(net.get_friends(alex), [])
+        self.assertEqual(net.get_friends(bella), [])
 
 if __name__ == "__main__":
     unittest.main()
