@@ -1,36 +1,19 @@
 ```mermaid
 classDiagram
-    class UserProfile {
-        - name: str
-        - email: str
-        - phone: str
-        + __init__(name: str, email: str = "", phone: str = ""): None
-        + update(name: str | None = None, email: str | None = None, phone: str | None = None): None
+    %% ========== ABSTRACT LAYER ==========
+    class AbstractCollection~T~ {
+        <<abstract>>
+        - size: int
+        + __init__(sourceCollection: Iterable[T] | None = None)
+        + isEmpty(): bool
+        + __len__(): int
         + __str__(): str
-        + __eq__(other: Any): bool
-        + __repr__(): str
-        + __hash__(): int
-        }
+        + __add__(other: Iterable[T]): AbstractCollection[T]
+        + __eq__(other: object): bool
+        + count(item: T): int
+    }
 
-    class SocialNetwork {
-        - _graph: LinkedDirectedGraph
-        - _profiles: dict[str, UserProfile]
-        - _profile_set: set[UserProfile]
-        - _friendships: dict[str, set[str]]
-        + __init__(): None
-        + profile_exists(target: UserProfile): bool
-        + find_profile_by_data(target: UserProfile): UserProfile | None
-        + add_profile(name: str, email: str = "", phone: str = ""): None
-        + add_friendship(profile1: UserProfile, profile2: UserProfile): None
-        + find_profile(name: str): UserProfile | None
-        + get_friends(name: str): list[UserProfile]
-        + suggest_friends(name: str): list[UserProfile]
-        + show_profile(name: str): None
-        + show_all_profiles(): None
-        + update_profile(current_name: str, new_name: str | None = None, new_email: str | None = None, new_phone: str | None = None): None
-        + remove_profile(name: str): None
-        + remove_friendship(profile1: UserProfile, profile2: UserProfile): None
-        }  
+    %% ========== GRAPH LAYER ==========
     class LinkedEdge {
         - vertex1: LinkedVertex
         - vertex2: LinkedVertex
@@ -72,7 +55,7 @@ classDiagram
         - edgeCount: int
         - vertices: dict[any, LinkedVertex]
         - size: int
-        + __init__(sourceCollection: any = None)
+        + __init__(sourceCollection: Iterable[any] | None = None)
         + clear(): None
         + clearEdgeMarks(): None
         + clearVertexMarks(): None
@@ -95,8 +78,45 @@ classDiagram
         + neighboringVertices(label: any): iterator[LinkedVertex]
     }
 
-    LinkedVertex "1" o-- "*" LinkedEdge
+    AbstractCollection <|-- LinkedDirectedGraph
     LinkedDirectedGraph "1" o-- "*" LinkedVertex
+    LinkedVertex "1" o-- "*" LinkedEdge
+
+    %% ========== APPLICATION LAYER ==========
+    class UserProfile {
+        - name: str
+        - email: str
+        - phone: str
+        + __init__(name: str, email: str = "", phone: str = ""): None
+        + update(name: str | None = None, email: str | None = None, phone: str | None = None): None
+        + __eq__(other: UserProfile): bool
+        + __hash__(): int
+        + __str__(): str
+        + __repr__(): str
+    }
+
+    class SocialNetwork {
+        - _graph: LinkedDirectedGraph
+        - _profiles: dict[str, UserProfile]
+        - _profile_set: set[UserProfile]
+        - _friendships: dict[str, set[str]]
+        + __init__(): None
+        + profile_exists(target: UserProfile): bool
+        + find_profile_by_data(target: UserProfile): UserProfile | None
+        + add_profile(name: str, email: str = "", phone: str = ""): None
+        + add_friendship(profile1: UserProfile, profile2: UserProfile): None
+        + add_friendship_by_name(name1: str, name2: str): None
+        + find_profile(name: str): UserProfile | None
+        + get_friends(name: str): list[UserProfile]
+        + suggest_friends(name: str): list[UserProfile]
+        + show_profile(name: str): None
+        + show_all_profiles(): None
+        + update_profile(current_name: str, new_name: str | None = None, new_email: str | None = None, new_phone: str | None = None): None
+        + remove_profile(name: str): None
+        + remove_friendship(profile1: UserProfile, profile2: UserProfile): None
+        + remove_friendship_by_name(name1: str, name2: str): None
+    }
+
     SocialNetwork "1" o-- "1" LinkedDirectedGraph
     SocialNetwork "1" o-- "*" UserProfile
 ```
